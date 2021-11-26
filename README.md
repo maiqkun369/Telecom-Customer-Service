@@ -1,4 +1,3 @@
-# Telecom-Customer-Service
 
 
 # Technical framework of telecommunications projects  
