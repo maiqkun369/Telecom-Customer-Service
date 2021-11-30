@@ -6,6 +6,7 @@ import com.mqk.common.api.Rowkey;
 import com.mqk.common.api.TableRef;
 import com.mqk.common.constant.Names;
 import com.mqk.common.constant.ValueConstant;
+import com.mqk.common.utils.DateUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
@@ -14,6 +15,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 /**
@@ -201,6 +203,41 @@ public abstract class BaseHbaseDao {
 	}
 
 	/**
+	 * 获取查询时的startRow, stopRow集合
+	 * @return
+	 */
+	protected List<String[]> getStartStoreRowkeys(String tel, String start, String end){
+		List<String[]> rowkeyss = new ArrayList<>();
+
+		String startTime = start.substring(0, 6);
+		String endTime = end.substring(0, 6);
+
+		final Calendar startCal = Calendar.getInstance();
+		startCal.setTime(DateUtil.parse(startTime,"yyyyMM"));
+
+		final Calendar endCal = Calendar.getInstance();
+		endCal.setTime(DateUtil.parse(endTime,"yyyyMM"));
+
+		while (startCal.getTimeInMillis() <= endCal.getTimeInMillis()) {
+			//当前时间
+			String nowTime = DateUtil.format(startCal.getTime(),"yyyyMM");
+
+			int regionNum = genRegionNum(tel, nowTime);
+
+			String startRow = regionNum + "_" + tel + "_" + nowTime;
+			String stopRow = startRow + "|";
+
+			String[] rowkeys = {startRow, stopRow};
+			rowkeyss.add(rowkeys);
+
+			//月份加一
+			startCal.add(Calendar.MONTH,1);
+		}
+
+		return rowkeyss;
+	}
+
+	/**
 	 * 计算分区号
 	 * @param tel
 	 * @param date
@@ -223,6 +260,7 @@ public abstract class BaseHbaseDao {
 		return regionNum;
 
 	}
+
 
 
 	protected void deleteTable(String tableName) throws IOException {

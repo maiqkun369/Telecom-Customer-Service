@@ -62,7 +62,6 @@ public class HbaseDao extends BaseHbaseDao {
 		    3.散列性（盐值三列，不能直接用时间戳作为rowkey, 非得用的话包括电话号码，
 		    可以使用字符串翻转操作, 最好自己根据预分区的区间，计算分区号）
 		 */
-
 		// rk = regionNum + call1 + time + call2 + duration
 		String rk = genRegionNum(call1, callTime) + "_" + call1 +  "_" + callTime + "_" + call2 + "_" + duration;
 
