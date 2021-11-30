@@ -1,20 +1,20 @@
 package com.mqk.common.bean;
 
 
+import com.mqk.common.api.Column;
+import com.mqk.common.api.Rowkey;
+import com.mqk.common.api.TableRef;
 import com.mqk.common.constant.Names;
 import com.mqk.common.constant.ValueConstant;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.client.Admin;
-import org.apache.hadoop.hbase.client.Connection;
-import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 基础 dao
@@ -30,6 +30,88 @@ public abstract class BaseHbaseDao {
 	 */
 	private ThreadLocal<Admin> adminHolder = new ThreadLocal<>();
 
+
+	/**
+	 * 插入数
+	 * @param calllog
+	 */
+	protected void putData(Object calllog) throws Exception{
+		//反射对象
+		final Class<?> aClass = calllog.getClass();
+
+		final TableRef tableRef = aClass.getAnnotation(TableRef.class);
+
+		//tableRef中可以拿到注解的相关信息，此处拿出value的表名
+		String tableName = tableRef.value();
+
+		//拿到该注解标注类下的所有属性
+		final Field[] fs = aClass.getDeclaredFields();
+		//rowkey
+		String stringRk = "";
+
+		//遍历找到rk
+		for (Field f : fs) {
+			//找出所有属性中有Rowkey注解的属性
+			final Rowkey rowkey = f.getAnnotation(Rowkey.class);
+			if(null != rowkey){
+				//因为属性是私有的，此处要设置accessible
+				f.setAccessible(true);
+				stringRk = (String) f.get(calllog);
+				//找了想要的rk就出循环
+				break;
+			}
+		}
+
+		final Connection connection = getConnection();
+		//获取表
+		final Table table = connection.getTable(TableName.valueOf(tableName));
+		final Put put = new Put(Bytes.toBytes(stringRk));
+
+
+		//遍历添加列
+		for (Field f : fs) {
+			final Column col = f.getAnnotation(Column.class);
+			//排除掉类中没加@Column注解的字段
+			if(null != col){
+				//列族
+				String family = col.family();
+				//列
+				String column = col.column();
+
+				if(null == column || "".equals(column)){
+					//没有在@Column注解中没有指定column值的话就用当前属性的名字
+					column = f.getName();
+				}
+
+				//私有属性要设置ACCESS=TRUE
+				f.setAccessible(true);
+				//属性的值
+				String value = (String) f.get(calllog);
+
+				//添加数据
+				put.addColumn(
+						Bytes.toBytes(family),
+						Bytes.toBytes(column),
+						Bytes.toBytes(value)
+				);
+			}
+		}
+
+		//增加数据
+		table.put(put);
+
+		table.close();
+
+	}
+
+
+	protected void putData(String tableName, Put put) throws IOException {
+		final Connection connection = getConnection();
+		//获取表
+		final Table table = connection.getTable(TableName.valueOf(tableName));
+		table.put(put);
+		table.close();
+	}
 
 	/**
 	 * 创建名称空间
@@ -58,12 +140,12 @@ public abstract class BaseHbaseDao {
 		final Admin admin = getAdmin();
 
 		if(admin.tableExists(TableName.valueOf(tableName))){
-			//存在，删除
+			//存在，删除后在创建
 			deleteTable(tableName);
-		}else {
-			//不存在,创建
-			createTable(tableName, regionCount, cfs);
 		}
+
+		//不存在,创建
+		createTable(tableName, regionCount, cfs);
 	}
 
 	private void createTable(String tableName, Integer regionCount, String... cfs) throws IOException {

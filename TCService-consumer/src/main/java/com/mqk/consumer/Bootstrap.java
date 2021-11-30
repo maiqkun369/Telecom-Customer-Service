@@ -14,7 +14,11 @@ public class Bootstrap {
 		Consumer consumer = new CallLogConsume();
 		//将数据存储到hbase
 
-		consumer.consume();
+		try {
+			consumer.consume();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
 
 		consumer.close();

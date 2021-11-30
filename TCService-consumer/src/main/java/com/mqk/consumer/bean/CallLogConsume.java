@@ -6,6 +6,7 @@ import com.mqk.consumer.hbase.HbaseDao;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Properties;
@@ -15,7 +16,7 @@ import java.util.Properties;
  */
 public class CallLogConsume implements Consumer {
 	@Override
-	public void consume() throws IOException {
+	public void consume() throws Exception {
 		Properties properties = new Properties();
 		try {
 			properties.load(Thread.currentThread()
@@ -44,7 +45,12 @@ public class CallLogConsume implements Consumer {
 			final ConsumerRecords<String, String> records = consumer.poll(100);
 			for (ConsumerRecord<String, String> record : records) {
 				System.out.println(record.value());
-				hbaseDao.insertData(record.value());
+				//hbaseDao.insertData(record.value());
+
+				final Calllog calllog = new Calllog(record.value());
+
+
+				hbaseDao.insertData(calllog);
 
 			}
 		}

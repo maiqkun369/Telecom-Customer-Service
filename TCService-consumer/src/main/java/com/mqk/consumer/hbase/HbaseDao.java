@@ -3,11 +3,8 @@ package com.mqk.consumer.hbase;
 import com.mqk.common.bean.BaseHbaseDao;
 import com.mqk.common.constant.Names;
 import com.mqk.common.constant.ValueConstant;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Admin;
-import org.apache.hadoop.hbase.client.Connection;
+import com.mqk.consumer.bean.Calllog;
 import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
@@ -27,11 +24,22 @@ public class HbaseDao extends BaseHbaseDao {
 		createTableXX(Names.TABLE.getValue(),
 				ValueConstant.REGION_COUNT, Names.CF_CALLER.getValue());
 
-
-
-
 		//关闭连接
 		end();
+
+	}
+
+	/**
+	 * 插入对象
+	 * @param calllog
+	 * @throws Exception
+	 */
+	public void insertData(Calllog calllog) throws Exception{
+		String rk = genRegionNum(calllog.getCall1(), calllog.getCalltime()) + "_"
+				+ calllog.getCall1() +  "_" + calllog.getCalltime() + "_" +
+				calllog.getCall2() + "_" + calllog.getDuration();
+		calllog.setRowkey(rk);
+		putData(calllog);
 
 	}
 
@@ -84,12 +92,6 @@ public class HbaseDao extends BaseHbaseDao {
 
 	}
 
-	private void putData(String tableName, Put put) throws IOException {
-		final Connection connection = getConnection();
-		//获取表
-		final Table table = connection.getTable(TableName.valueOf(tableName));
-		table.put(put);
-		table.close();
-	}
+
 
 }
