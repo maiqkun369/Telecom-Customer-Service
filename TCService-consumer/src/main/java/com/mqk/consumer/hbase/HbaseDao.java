@@ -21,8 +21,13 @@ public class HbaseDao extends BaseHbaseDao {
 
 		createNamespaceNx(Names.NAMESPACE.getValue());
 
-		createTableXX(Names.TABLE.getValue(),
-				ValueConstant.REGION_COUNT, Names.CF_CALLER.getValue());
+		createTableXX(
+				Names.TABLE.getValue(),
+				"com.mqk.consumer.coprocessor.InsertCalleeCoprocessor",
+				ValueConstant.REGION_COUNT,
+				Names.CF_CALLER.getValue(),
+				Names.CF_CALLEE.getValue()
+				);
 
 		//关闭连接
 		end();
@@ -63,7 +68,9 @@ public class HbaseDao extends BaseHbaseDao {
 		    可以使用字符串翻转操作, 最好自己根据预分区的区间，计算分区号）
 		 */
 		// rk = regionNum + call1 + time + call2 + duration
-		String rk = genRegionNum(call1, callTime) + "_" + call1 +  "_" + callTime + "_" + call2 + "_" + duration;
+		//主叫用户
+		String rk = genRegionNum(call1, callTime) + "_" + call1 +  "_" +
+				callTime + "_" + call2 + "_" + duration + "_1";
 
 		final Put put = new Put(Bytes.toBytes(rk));
 		put.addColumn(
@@ -86,8 +93,12 @@ public class HbaseDao extends BaseHbaseDao {
 				Bytes.toBytes("duration"),
 				Bytes.toBytes(duration)
 		);
+		put.addColumn(
+				Bytes.toBytes(Names.CF_CALLER.getValue()),
+				Bytes.toBytes("flag"),
+				Bytes.toBytes("1")
+		);
 		putData(Names.TABLE.getValue(), put);
-
 
 	}
 

@@ -135,10 +135,10 @@ public abstract class BaseHbaseDao {
 	 * 创建表
 	 */
 	protected void createTableXX(String tableName, String... cfs) throws IOException {
-		createTableXX(tableName, null, cfs);
+		createTableXX(tableName, null, null, cfs);
 	}
 
-	protected void createTableXX(String tableName, Integer regionCount, String... cfs) throws IOException {
+	protected void createTableXX(String tableName, String corprocessClassName, Integer regionCount, String... cfs) throws IOException {
 		final Admin admin = getAdmin();
 
 		if(admin.tableExists(TableName.valueOf(tableName))){
@@ -147,10 +147,10 @@ public abstract class BaseHbaseDao {
 		}
 
 		//不存在,创建
-		createTable(tableName, regionCount, cfs);
+		createTable(tableName, corprocessClassName, regionCount, cfs);
 	}
 
-	private void createTable(String tableName, Integer regionCount, String... cfs) throws IOException {
+	private void createTable(String tableName, String corprocessClassName, Integer regionCount, String... cfs) throws IOException {
 		final Admin admin = getAdmin();
 		HTableDescriptor tableDescriptor = new HTableDescriptor(TableName.valueOf(tableName));
 		if(null == cfs || cfs.length == 0){
@@ -161,6 +161,11 @@ public abstract class BaseHbaseDao {
 		for (String cf : cfs) {
 			final HColumnDescriptor hColumnDescriptor = new HColumnDescriptor(cf);
 			tableDescriptor.addFamily(hColumnDescriptor);
+		}
+
+		//添加协处理器来添加被叫用户数据
+		if(null != corprocessClassName && !"".equals(corprocessClassName)){
+			tableDescriptor.addCoprocessor(corprocessClassName);
 		}
 
 		if(null == regionCount || regionCount <= 1){
