@@ -13,6 +13,7 @@
         <module>TCService-producer</module>
         <module>TCService-consumer</module>
         <module>TCService-consumer-coprocessor</module>
+        <module>TCService-analysis</module>
     </modules>
 
 
