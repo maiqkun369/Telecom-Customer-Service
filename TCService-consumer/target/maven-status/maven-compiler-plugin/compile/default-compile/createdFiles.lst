@@ -1,0 +1,4 @@
+com\mqk\consumer\bean\Calllog.class
+com\mqk\consumer\Bootstrap.class
+com\mqk\consumer\hbase\HbaseDao.class
+com\mqk\consumer\bean\CallLogConsume.class

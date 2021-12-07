@@ -1,8 +1,9 @@
 package com.mqk.analysis.io;
 
+import com.mqk.analysis.kv.AnalysisKey;
+import com.mqk.analysis.kv.AnalysisValue;
 import com.mqk.common.utils.JDBCUtil;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.*;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
@@ -17,11 +18,11 @@ import java.sql.SQLException;
 /**
  * mysql数据格式化
  */
-public class MysqlTextOutputFormat extends OutputFormat<Text, Text> {
+public class MysqlBeanOutputFormat extends OutputFormat<AnalysisKey, AnalysisValue> {
 
-	protected static class MySQLRecordWriter<K,V> extends RecordWriter<Text,Text>{
+	protected static class MySQLRecordWriter<K,V> extends RecordWriter<AnalysisKey,AnalysisValue>{
 		private Connection connection;
-		private Jedis jedis = null;
+		private Jedis jedis;
 
 
 		public MySQLRecordWriter(){
@@ -38,22 +39,16 @@ public class MysqlTextOutputFormat extends OutputFormat<Text, Text> {
 		 * @throws InterruptedException
 		 */
 		@Override
-		public void write(Text key, Text value) throws IOException, InterruptedException {
-			final String[] values = value.toString().split("_");
+		public void write(AnalysisKey key, AnalysisValue value) throws IOException, InterruptedException {
 			PreparedStatement preparedStatement = null;
 			try {
 				String sql = "insert into ct_call (telid, dateid, sumcall, sumduration) values (?, ?, ?, ?)";
 				preparedStatement = connection.prepareStatement(sql);
 
-				String k = key.toString();
-				final String[] ks = k.split("_");
-				String tel = ks[0];
-				String date = ks[1];
-
-				preparedStatement.setInt(1, Integer.parseInt(jedis.hget("ct_user", tel)));
-				preparedStatement.setInt(2, Integer.parseInt(jedis.hget("ct_date", date)));
-				preparedStatement.setInt(3, Integer.parseInt(values[0]));
-				preparedStatement.setInt(4, Integer.parseInt(values[1]));
+				preparedStatement.setInt(1, Integer.parseInt(jedis.hget("ct_user", key.getTel())));
+				preparedStatement.setInt(2, Integer.parseInt(jedis.hget("ct_date", key.getDate())));
+				preparedStatement.setInt(3, Integer.parseInt(value.getSumCall()));
+				preparedStatement.setInt(4, Integer.parseInt(value.getSumDuration()));
 				preparedStatement.executeUpdate();
 			} catch (SQLException e) {
 				e.printStackTrace();
@@ -93,7 +88,7 @@ public class MysqlTextOutputFormat extends OutputFormat<Text, Text> {
 	 * @throws InterruptedException
 	 */
 	@Override
-	public RecordWriter<Text, Text> getRecordWriter(TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
+	public RecordWriter<AnalysisKey, AnalysisValue> getRecordWriter(TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
 		return new MySQLRecordWriter();
 	}
 
