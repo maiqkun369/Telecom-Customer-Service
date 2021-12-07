@@ -20,6 +20,27 @@ public class Calllog {
 	private String calltime;
 	@Column(family = "caller")
 	private String duration;
+	@Column(family = "caller")
+	private String flag = "1";
+
+	private String name;
+
+
+	public String getFlag() {
+		return flag;
+	}
+
+	public void setFlag(String flag) {
+		this.flag = flag;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
 
 	public Calllog(String value) {
 		final String[] values = value.split("\t");

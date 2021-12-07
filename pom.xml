@@ -12,6 +12,9 @@
         <module>TCService-common</module>
         <module>TCService-producer</module>
         <module>TCService-consumer</module>
+        <module>TCService-consumer-coprocessor</module>
+        <module>TCService-analysis</module>
+        <module>TCService-cache</module>
     </modules>
 
 

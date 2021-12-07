@@ -45,12 +45,10 @@ public class CallLogConsume implements Consumer {
 			final ConsumerRecords<String, String> records = consumer.poll(100);
 			for (ConsumerRecord<String, String> record : records) {
 				System.out.println(record.value());
-				//hbaseDao.insertData(record.value());
+				hbaseDao.insertData(record.value());
 
-				final Calllog calllog = new Calllog(record.value());
-
-
-				hbaseDao.insertData(calllog);
+//				final Calllog calllog = new Calllog(record.value());
+//				hbaseDao.insertData(calllog);
 
 			}
 		}

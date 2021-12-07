@@ -1,0 +1,6 @@
+com\mqk\producer\Bootstrap.class
+com\mqk\producer\bean\CallLog.class
+com\mqk\producer\bean\Contact.class
+com\mqk\producer\bean\LocalFileProducer.class
+com\mqk\producer\io\LocalFileDataIn.class
+com\mqk\producer\io\LocalFileDataOut.class

@@ -6,6 +6,7 @@ import com.mqk.common.api.Rowkey;
 import com.mqk.common.api.TableRef;
 import com.mqk.common.constant.Names;
 import com.mqk.common.constant.ValueConstant;
+import com.mqk.common.utils.DateUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
@@ -14,6 +15,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 /**
@@ -133,10 +135,10 @@ public abstract class BaseHbaseDao {
 	 * 创建表
 	 */
 	protected void createTableXX(String tableName, String... cfs) throws IOException {
-		createTableXX(tableName, null, cfs);
+		createTableXX(tableName, null, null, cfs);
 	}
 
-	protected void createTableXX(String tableName, Integer regionCount, String... cfs) throws IOException {
+	protected void createTableXX(String tableName, String corprocessClassName, Integer regionCount, String... cfs) throws IOException {
 		final Admin admin = getAdmin();
 
 		if(admin.tableExists(TableName.valueOf(tableName))){
@@ -145,10 +147,10 @@ public abstract class BaseHbaseDao {
 		}
 
 		//不存在,创建
-		createTable(tableName, regionCount, cfs);
+		createTable(tableName, corprocessClassName, regionCount, cfs);
 	}
 
-	private void createTable(String tableName, Integer regionCount, String... cfs) throws IOException {
+	private void createTable(String tableName, String corprocessClassName, Integer regionCount, String... cfs) throws IOException {
 		final Admin admin = getAdmin();
 		HTableDescriptor tableDescriptor = new HTableDescriptor(TableName.valueOf(tableName));
 		if(null == cfs || cfs.length == 0){
@@ -159,6 +161,11 @@ public abstract class BaseHbaseDao {
 		for (String cf : cfs) {
 			final HColumnDescriptor hColumnDescriptor = new HColumnDescriptor(cf);
 			tableDescriptor.addFamily(hColumnDescriptor);
+		}
+
+		//添加协处理器来添加被叫用户数据
+		if(null != corprocessClassName && !"".equals(corprocessClassName)){
+			tableDescriptor.addCoprocessor(corprocessClassName);
 		}
 
 		if(null == regionCount || regionCount <= 1){
@@ -201,6 +208,41 @@ public abstract class BaseHbaseDao {
 	}
 
 	/**
+	 * 获取查询时的startRow, stopRow集合
+	 * @return
+	 */
+	protected List<String[]> getStartStoreRowkeys(String tel, String start, String end){
+		List<String[]> rowkeyss = new ArrayList<>();
+
+		String startTime = start.substring(0, 6);
+		String endTime = end.substring(0, 6);
+
+		final Calendar startCal = Calendar.getInstance();
+		startCal.setTime(DateUtil.parse(startTime,"yyyyMM"));
+
+		final Calendar endCal = Calendar.getInstance();
+		endCal.setTime(DateUtil.parse(endTime,"yyyyMM"));
+
+		while (startCal.getTimeInMillis() <= endCal.getTimeInMillis()) {
+			//当前时间
+			String nowTime = DateUtil.format(startCal.getTime(),"yyyyMM");
+
+			int regionNum = genRegionNum(tel, nowTime);
+
+			String startRow = regionNum + "_" + tel + "_" + nowTime;
+			String stopRow = startRow + "|";
+
+			String[] rowkeys = {startRow, stopRow};
+			rowkeyss.add(rowkeys);
+
+			//月份加一
+			startCal.add(Calendar.MONTH,1);
+		}
+
+		return rowkeyss;
+	}
+
+	/**
 	 * 计算分区号
 	 * @param tel
 	 * @param date
@@ -223,6 +265,7 @@ public abstract class BaseHbaseDao {
 		return regionNum;
 
 	}
+
 
 
 	protected void deleteTable(String tableName) throws IOException {
